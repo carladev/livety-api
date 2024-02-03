@@ -1,0 +1,38 @@
+/vendor/
+/node_modules/
+
+# Archivos de configuración sensibles
+/.env
+/config/*.php
+
+# Directorios de caché
+/cache/
+/tmp/
+
+# Archivos de log
+/logs/
+
+# Archivos de sistema y editor
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
+*.swo
+*.sublime*
+
+# Archivos específicos de Slim que no necesitas rastrear
+/public/uploads/
+
+# Dependencias de Composer
+composer.phar
+composer.lock
+
+# Archivos generados por pruebas
+/phpunit.xml
+/phpunit.result.cache
+/coverage/
+
+# Archivos de distribución y empaquetado
+/dist/
+/build/
+/pkg/
