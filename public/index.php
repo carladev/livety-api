@@ -22,4 +22,7 @@ $app->addErrorMiddleware(true, true, true);
 // Users
 (require __DIR__ . '/../src/Routes/users-routes.php')($app);
 
+// Habits
+(require __DIR__ . '/../src/Routes/habits-routes.php')($app);
+
 $app->run();
