@@ -31,4 +31,41 @@ return function (App $app) {
         ->withStatus(500);
     }
   });
+
+  $app->post('/user-habits/add', function (Request $request, Response $response, array $args) {
+    $data = $request->getParsedBody();
+    $userId = $data["userId"];
+    $frequencyId = $data["frequencyId"];
+    $title = $data["title"];
+    $color = $data["color"];
+
+    $sql = "INSERT INTO userHabits (userId, frequencyId, title, color) VALUES (:userId, :frequencyId, :title, :color)";
+
+    try {
+      $db = new DB();
+      $conn = $db->connect();
+
+      $stmt = $conn->prepare($sql);
+      $stmt->bindParam(':userId', $userId);
+      $stmt->bindParam(':frequencyId', $frequencyId);
+      $stmt->bindParam(':title', $title);
+      $stmt->bindParam(':color', $color);
+      $result = $stmt->execute();
+
+      $db = null;
+      $response->getBody()->write(json_encode($result));
+      return $response
+        ->withHeader('content-type', 'application/json')
+        ->withStatus(200);
+    } catch (PDOException $e) {
+      $error = array(
+        "message" => $e->getMessage()
+      );
+
+      $response->getBody()->write(json_encode($error));
+      return $response
+        ->withHeader('content-type', 'application/json')
+        ->withStatus(500);
+    }
+  });
 };
