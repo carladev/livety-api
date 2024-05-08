@@ -1,4 +1,8 @@
 <?php
+header('Access-Control-Allow-Origin: *');
+header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept");
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE');
+header('content-type: application/json; charset=utf-8');
 
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -7,8 +11,8 @@ use Slim\Factory\AppFactory;
 
 
 require_once __DIR__ . '/../vendor/autoload.php';
-//$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/..');
-//$dotenv->load();
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/..');
+$dotenv->load();
 
 require_once __DIR__ . '/../src/config.php';
 
