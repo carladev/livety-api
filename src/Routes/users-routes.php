@@ -7,7 +7,7 @@ use Slim\App;
 
 return function (App $app) {
   $app->get('/users-data/all', function (Request $request, Response $response) {
-    $sql = "SELECT * FROM userHabits";
+    $sql = "SELECT * FROM users";
 
     try {
       $db = new DB();
