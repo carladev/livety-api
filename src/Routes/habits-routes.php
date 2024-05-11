@@ -34,7 +34,8 @@ return function (App $app) {
 
   $app->post('/habit', function (Request $request, Response $response, array $args) {
     $data = $request->getParsedBody();
-    $userId = $data["userId"];
+    // cambiar cuando tenga el login
+    $userId = 1; 
     $habitName = $data["habitName"];
     $color = $data["color"];
     $icon = $data["icon"];
