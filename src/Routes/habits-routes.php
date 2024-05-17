@@ -6,6 +6,7 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\App;
 
 return function (App $app) {
+
   $app->get('/habits', function (Request $request, Response $response) {
     $sql = "SELECT * FROM LIV.habits";
 
@@ -42,14 +43,18 @@ return function (App $app) {
     $frequencyId = $data["frequencyId"];
     $habitGoal = $data["habitGoal"];
     $habitGoalUnit = $data["habitGoalUnit"];
-    $enabled = $data["enabled"];
 
-    $sql = "INSERT INTO LIV.habits (userId, habitName, color, icon, frequencyId, habitGoal, habitGoalUnit, enabled) 
-    VALUES (:userId, :habitName, :color, :icon, :frequencyId, :habitGoal, :habitGoalUnit, :enabled)";
-
-if($frequencyId == 'D'){
-  // for para insertar habitos por dias de la semana 
-}
+    $sql = "INSERT INTO LIV.habits (userId, habitName, color, icon, frequencyId, habitGoal, habitGoalUnit) 
+    VALUES (:userId, :habitName, :color, :icon, :frequencyId, :habitGoal, :habitGoalUnit)";
+ 
+ if($frequencyId == 'D'){
+  $weekDays = $data["weekDays"];
+  foreach($weekDays as $weekDay){
+    if($weekDay.selected){
+      $sql = "INSERT INTO LIV.habitsWeekDays (habitId, weekdayId) VALUES (:habitId, :weekdayId)";
+    }   
+  }
+ }
     try {
       $db = new DB();
       $conn = $db->connect();
@@ -57,13 +62,11 @@ if($frequencyId == 'D'){
       $stmt = $conn->prepare($sql);
       $stmt->bindParam(':userId', $userId);
       $stmt->bindParam(':habitName', $habitName);
-      $stmt->bindParam(':title', $title);
       $stmt->bindParam(':color', $color);
       $stmt->bindParam(':icon', $icon);
       $stmt->bindParam(':frequencyId', $frequencyId);
       $stmt->bindParam(':habitGoal', $habitGoal);
       $stmt->bindParam(':habitGoalUnit', $habitGoalUnit);
-      $stmt->bindParam(':enabled', $enabled);
       $result = $stmt->execute();
 
       $db = null;
@@ -82,7 +85,7 @@ if($frequencyId == 'D'){
         ->withStatus(500);
     }
   });
-
+  
   $app->get('/habits/frequencies', function (Request $request, Response $response) {
     $sql = "SELECT * FROM LIV.frequencies";
 
@@ -136,7 +139,10 @@ if($frequencyId == 'D'){
   });
 
   $app->get('/habits/week-days', function (Request $request, Response $response) {
-    $sql = "SELECT * FROM LIV.weekDays";
+    $sql = "SELECT weekdayId, 
+                   weekdayName, 
+                   true AS selected
+              FROM LIV.weekDays";
 
     try {
       $db = new DB();
