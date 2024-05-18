@@ -5,9 +5,9 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\App;
 
-return function (App $app) {
+return function (App $app, $jwtMiddleware) {
 
-  $app->get('/habits', function (Request $request, Response $response) {
+  $app->get('/api/habits', function (Request $request, Response $response) {
     $sql = "SELECT H.habitId,
                    H.habitName,
                    H.color,
@@ -43,9 +43,9 @@ return function (App $app) {
         ->withHeader('content-type', 'application/json')
         ->withStatus(500);
     }
-  });
+  })->add($jwtMiddleware);
 
-  $app->post('/habit', function (Request $request, Response $response, array $args) {
+  $app->post('/api/habit', function (Request $request, Response $response, array $args) {
     $data = $request->getParsedBody();
     // cambiar cuando tenga el login
     $userId = 1; 
@@ -93,7 +93,7 @@ return function (App $app) {
         $conn->commit();
 
         $db = null;
-        $response->getBody()->write(json_encode(['success' => true, 'habitId' => $habitId]));
+        $response->getBody()->write(json_encode(['success' => true]));
         return $response
             ->withHeader('content-type', 'application/json')
             ->withStatus(200);
@@ -109,10 +109,10 @@ return function (App $app) {
             ->withHeader('content-type', 'application/json')
             ->withStatus(500);
     }
-});
+})->add($jwtMiddleware);;
 
   
-  $app->get('/habits/frequencies', function (Request $request, Response $response) {
+  $app->get('/api/habits/frequencies', function (Request $request, Response $response) {
     $sql = "SELECT * FROM LIV.frequencies";
 
     try {
@@ -138,7 +138,7 @@ return function (App $app) {
     }
   });
 
-  $app->get('/habits/colors', function (Request $request, Response $response) {
+  $app->get('/api/habits/colors', function (Request $request, Response $response) {
     $sql = "SELECT * FROM LIV.defaultColors";
 
     try {
@@ -162,9 +162,9 @@ return function (App $app) {
         ->withHeader('content-type', 'application/json')
         ->withStatus(500);
     }
-  });
+  })->add($jwtMiddleware);;
 
-  $app->get('/habits/week-days', function (Request $request, Response $response) {
+  $app->get('/api/habits/week-days', function (Request $request, Response $response) {
     $sql = "SELECT weekdayId, 
                    weekdayName, 
                    true AS selected
@@ -191,54 +191,54 @@ return function (App $app) {
         ->withHeader('content-type', 'application/json')
         ->withStatus(500);
     }
-  });
+  })->add($jwtMiddleware);
 
   // HABITS RECORDS
 
-//   $app->post('/habit-record', function (Request $request, Response $response, array $args) {
-//     $data = $request->getParsedBody();
-//     // cambiar cuando tenga el login
-//     $userId = 1; 
-//     $habitId = $data["habitId"];
-//     $recordDate = $data["recordDate"];
-//     $record = $data["record"];
-//     $habitRecordId = $data["habitRecordId"];
-//     try {
-//         $db = new DB();
-//         $conn = $db->connect();
+  $app->post('/api/habit-record', function (Request $request, Response $response, array $args) {
+    $data = $request->getParsedBody();
+    // cambiar cuando tenga el login
+    $userId = 1; 
+    $habitId = $data["habitId"];
+    $recordDate = $data["recordDate"];
+    $record = $data["record"];
+    $habitRecordId = $data["habitRecordId"];
+    try {
+        $db = new DB();
+        $conn = $db->connect();
 
-//         $conn->beginTransaction();
+        $conn->beginTransaction();
 
-//         $sql = "INSERT INTO LIV.habitRecords (habitId, userId, recordDate, record)
-//                      VALUES (:habitId, :userId, :recordDate, :record) 
-//            ON DUPLICATE KEY UPDATE record = :record)";
+        $sql = "INSERT INTO LIV.habitRecords (habitId, userId, recordDate, record)
+                     VALUES (:habitId, :userId, :recordDate, :record) 
+           ON DUPLICATE KEY UPDATE record = :record)";
  
-//         $stmt = $conn->prepare($sql);
-//         $stmt->bindParam(':userId', $userId);
-//         $stmt->bindParam(':habitId', $habitId);
-//         $stmt->bindParam(':recordDate', $recordDate);
-//         $stmt->bindParam(':record', $record);
-//         $stmt->execute();
-//         }
+        $stmt = $conn->prepare($sql);
+        $stmt->bindParam(':userId', $userId);
+        $stmt->bindParam(':habitId', $habitId);
+        $stmt->bindParam(':recordDate', $recordDate);
+        $stmt->bindParam(':record', $record);
+        $stmt->execute();
+        
 
-//         $conn->commit();
+        $conn->commit();
 
-//         $db = null;
-//         $response->getBody()->write(json_encode(['success' => true, 'habitId' => $habitId]));
-//         return $response
-//             ->withHeader('content-type', 'application/json')
-//             ->withStatus(200);
-//     } catch (PDOException $e) {
-//         $conn->rollBack();
+        $db = null;
+        $response->getBody()->write(json_encode(['success' => true]));
+        return $response
+            ->withHeader('content-type', 'application/json')
+            ->withStatus(200);
+    } catch (PDOException $e) {
 
-//         $error = array(
-//             "message" => $e->getMessage()
-//         );
+        $error = array(
+            "message" => $e->getMessage()
+        );
 
-//         $response->getBody()->write(json_encode($error));
-//         return $response
-//             ->withHeader('content-type', 'application/json')
-//             ->withStatus(500);
-    
-// });
+        $response->getBody()->write(json_encode($error));
+        return $response
+            ->withHeader('content-type', 'application/json')
+            ->withStatus(500);
+    }
+
+  })->add($jwtMiddleware); 
 };
