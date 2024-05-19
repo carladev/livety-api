@@ -8,6 +8,8 @@ use Slim\App;
 return function (App $app, $jwtMiddleware) {
 
   $app->get('/api/habits', function (Request $request, Response $response) {
+    $date = $request->getQueryParams()['date'];
+
     $sql = "SELECT H.habitId,
                    H.habitName,
                    H.color,
@@ -18,32 +20,76 @@ return function (App $app, $jwtMiddleware) {
                    HR.record
               FROM LIV.habits H
          LEFT JOIN LIV.habitsWeekDays HWD ON HWD.habitId = H.habitId AND HWD.weekdayId = DAYNAME(now())
-         LEFT JOIN LIV.habitRecords HR ON HR.habitId = H.habitId
+         LEFT JOIN LIV.habitRecords HR ON HR.habitId = H.habitId AND HR.recordDate = :date
              WHERE H.enabled IS TRUE
                AND H.userId = 1";
 
     try {
+        $db = new DB();
+        $conn = $db->connect();
+        $stmt = $conn->prepare($sql);
+        $stmt->bindParam(':date', $date, PDO::PARAM_STR); // Vinculación del parámetro
+        $stmt->execute();
+        $habits = $stmt->fetchAll(PDO::FETCH_OBJ);
+        $db = null;
+
+        $response->getBody()->write(json_encode($habits));
+        return $response
+            ->withHeader('content-type', 'application/json')
+            ->withStatus(200);
+    } catch (PDOException $e) {
+        $error = array(
+            "message" => $e->getMessage()
+        );
+
+        $response->getBody()->write(json_encode($error));
+        return $response
+            ->withHeader('content-type', 'application/json')
+            ->withStatus(500);
+    }
+})->add($jwtMiddleware);
+
+$app->get('/api/habit/{habitId}', function (Request $request, Response $response, array $args) {
+  $habitId = $args['habitId'];
+  $sql = "SELECT H.habitId,
+                 H.habitName,
+                 H.color,
+                 H.icon,
+                 H.frequencyId,
+                 H.habitGoal,
+                 H.habitGoalUnit
+          FROM LIV.habits H
+          WHERE H.habitId = :habitId";
+
+  try {
       $db = new DB();
       $conn = $db->connect();
-      $stmt = $conn->query($sql);
-      $users = $stmt->fetchAll(PDO::FETCH_OBJ);
+      $stmt = $conn->prepare($sql);
+      $stmt->execute([':habitId' => $habitId]);
+      $habit = $stmt->fetchAll(PDO::FETCH_OBJ);
       $db = null;
 
-      $response->getBody()->write(json_encode($users));
+      if (!empty($habit)) {
+          $habit = $habit[0];
+      }
+
+      $response->getBody()->write(json_encode($habit));
       return $response
-        ->withHeader('content-type', 'application/json')
-        ->withStatus(200);
-    } catch (PDOException $e) {
+          ->withHeader('content-type', 'application/json')
+          ->withStatus(200);
+  } catch (PDOException $e) {
       $error = array(
-        "message" => $e->getMessage()
+          "message" => $e->getMessage()
       );
 
       $response->getBody()->write(json_encode($error));
       return $response
-        ->withHeader('content-type', 'application/json')
-        ->withStatus(500);
-    }
-  })->add($jwtMiddleware);
+          ->withHeader('content-type', 'application/json')
+          ->withStatus(500);
+  }
+})->add($jwtMiddleware);
+
+
 
   $app->post('/api/habit', function (Request $request, Response $response, array $args) {
     $data = $request->getParsedBody();
@@ -194,24 +240,21 @@ return function (App $app, $jwtMiddleware) {
   })->add($jwtMiddleware);
 
   // HABITS RECORDS
-
-  $app->post('/api/habit-record', function (Request $request, Response $response, array $args) {
+  $app->post('/api/habit/record', function (Request $request, Response $response, array $args) {
     $data = $request->getParsedBody();
     // cambiar cuando tenga el login
     $userId = 1; 
     $habitId = $data["habitId"];
     $recordDate = $data["recordDate"];
     $record = $data["record"];
-    $habitRecordId = $data["habitRecordId"];
+    
     try {
         $db = new DB();
         $conn = $db->connect();
-
         $conn->beginTransaction();
-
         $sql = "INSERT INTO LIV.habitRecords (habitId, userId, recordDate, record)
                      VALUES (:habitId, :userId, :recordDate, :record) 
-           ON DUPLICATE KEY UPDATE record = :record)";
+           ON DUPLICATE KEY UPDATE record = :record";
  
         $stmt = $conn->prepare($sql);
         $stmt->bindParam(':userId', $userId);
