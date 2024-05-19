@@ -9,6 +9,7 @@ return function (App $app, $jwtMiddleware) {
 
   $app->get('/api/habits', function (Request $request, Response $response) {
     $date = $request->getQueryParams()['date'];
+    $userId = $request->getAttribute('userId');
 
     $sql = "SELECT H.habitId,
                    H.habitName,
@@ -22,13 +23,14 @@ return function (App $app, $jwtMiddleware) {
          LEFT JOIN LIV.habitsWeekDays HWD ON HWD.habitId = H.habitId AND HWD.weekdayId = DAYNAME(now())
          LEFT JOIN LIV.habitRecords HR ON HR.habitId = H.habitId AND HR.recordDate = :date
              WHERE H.enabled IS TRUE
-               AND H.userId = 1";
+               AND H.userId = :userId";
 
     try {
         $db = new DB();
         $conn = $db->connect();
         $stmt = $conn->prepare($sql);
-        $stmt->bindParam(':date', $date, PDO::PARAM_STR); // Vinculación del parámetro
+        $stmt->bindParam(':date', $date, PDO::PARAM_STR);
+        $stmt->bindParam(':userId', $userId, PDO::PARAM_INT);
         $stmt->execute();
         $habits = $stmt->fetchAll(PDO::FETCH_OBJ);
         $db = null;
@@ -48,6 +50,7 @@ return function (App $app, $jwtMiddleware) {
             ->withStatus(500);
     }
 })->add($jwtMiddleware);
+
 
 $app->get('/api/habit/{habitId}', function (Request $request, Response $response, array $args) {
   $habitId = $args['habitId'];

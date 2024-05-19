@@ -27,27 +27,34 @@ $app->add(new BasePathMiddleware($app));
 $errorMiddleware = $app->addErrorMiddleware(true, true, true);
 
 $jwtMiddleware = function (Request $request, $handler) use ($secretKey) {
-  $authHeader = $request->getHeader('Authorization');
-  if ($authHeader) {
-      $arr = explode(' ', $authHeader[0]);
-      if (count($arr) == 2 && $arr[0] == 'Bearer') {
-          $jwt = $arr[1];
-          try {
-              $decoded = JWT::decode($jwt, new Key($secretKey, 'HS256'));
-              $request = $request->withAttribute('jwt', $decoded);
-              return $handler->handle($request);
-          } catch (Exception $e) {
-              return (new Slim\Psr7\Response())->withStatus(401);
-          }
-      }
-  }
+    $authHeader = $request->getHeader('Authorization');
+    if ($authHeader) {
+        $arr = explode(' ', $authHeader[0]);
+        if (count($arr) == 2 && $arr[0] == 'Bearer') {
+            $jwt = $arr[1];
+            try {
+                $decoded = JWT::decode($jwt, new Key($secretKey, 'HS256'));
+                error_log('UserID: ' . $decoded->userId);
+                $request = $request->withAttribute('userId', $decoded->userId);
+                return $handler->handle($request);
+            } catch (Exception $e) {
+                $response = new Response();
+                $response->getBody()->write(json_encode(['message' => 'Unauthorized']));
+                return $response->withStatus(401)->withHeader('Content-Type', 'application/json');
+            }
+        }
+    }
 
-  return (new Slim\Psr7\Response())->withStatus(401);
+    $response = new Response();
+    $response->getBody()->write(json_encode(['message' => 'Unauthorized']));
+    return $response->withStatus(401)->withHeader('Content-Type', 'application/json');
 };
 
 
-// Login
-(require __DIR__ . '/../src/Routes/login-routes.php')($app);
+
+
+// Auth
+(require __DIR__ . '/../src/Routes/auth-routes.php')($app);
 
 // Habits
 (require __DIR__ . '/../src/Routes/habits-routes.php')($app, $jwtMiddleware);
