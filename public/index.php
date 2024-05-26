@@ -51,12 +51,12 @@ $jwtMiddleware = function (Request $request, $handler) use ($secretKey) {
 };
 
 
-
-
 // Auth
 (require __DIR__ . '/../src/Routes/auth-routes.php')($app);
 
 // Habits
 (require __DIR__ . '/../src/Routes/habits-routes.php')($app, $jwtMiddleware);
 
+// Tracking
+(require __DIR__ . '/../src/Routes/tracking-routes.php')($app, $jwtMiddleware);
 $app->run();
