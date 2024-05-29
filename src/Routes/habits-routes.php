@@ -20,7 +20,7 @@ return function (App $app, $jwtMiddleware) {
                    H.habitGoalUnit,
                    HR.record
               FROM LIV.habits H
-         LEFT JOIN LIV.habitsWeekDays HWD ON HWD.habitId = H.habitId AND HWD.weekdayId = DAYNAME(now())
+         LEFT JOIN LIV.habitsWeekDays HWD ON HWD.habitId = H.habitId AND HWD.weekdayId = WEEKDAY(now())
          LEFT JOIN LIV.habitRecords HR ON HR.habitId = H.habitId AND HR.recordDate = :date
              WHERE H.enabled IS TRUE
                AND H.userId = :userId";
@@ -215,6 +215,7 @@ $app->get('/api/habit/{habitId}', function (Request $request, Response $response
 
   $app->get('/api/habits/week-days', function (Request $request, Response $response) {
     $sql = "SELECT weekdayId, 
+                   weekdayAlias,
                    weekdayName, 
                    true AS selected
               FROM LIV.weekDays";
