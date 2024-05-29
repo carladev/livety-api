@@ -35,7 +35,7 @@ return function (App $app, $jwtMiddleware) {
              FROM HabitWeekDays HWD
         LEFT JOIN LIV.habitRecords HR ON HWD.habitId = HR.habitId
               AND WEEKDAY(HR.recordDate) = HWD.weekdayId
-              AND WEEK(HR.recordDate) = :weekNumber
+              AND WEEK(HR.recordDate, 1) = :weekNumber
          ORDER BY HWD.habitId, HWD.weekdayId, progress DESC";
 
         try {
