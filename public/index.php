@@ -54,6 +54,9 @@ $jwtMiddleware = function (Request $request, $handler) use ($secretKey) {
 // Auth
 (require __DIR__ . '/../src/Routes/auth-routes.php')($app);
 
+// Users
+(require __DIR__ . '/../src/Routes/users-routes.php')($app, $jwtMiddleware);
+
 // Habits
 (require __DIR__ . '/../src/Routes/habits-routes.php')($app, $jwtMiddleware);
 
