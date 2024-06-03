@@ -64,7 +64,7 @@ return function (App $app, $jwtMiddleware) {
                                 SET userName = :userName,
                                     email = :email,
                                     password = IF(:password IS NULL, password, :password),
-                                    photo = IF(:photo IS NULL, photo, :photo),
+                                    photo = IF(:photo IS NULL, photo, :photo)
                                 WHERE userId = :userId');
         $stmt->bindParam(':userName', $userName);
         $stmt->bindParam(':email', $email);
