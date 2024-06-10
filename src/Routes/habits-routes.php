@@ -16,10 +16,12 @@ return function (App $app, $jwtMiddleware) {
                    H.color,
                    H.icon,
                    H.frequencyId,
+                   F.frequencyName,
                    H.habitGoal,
                    H.habitGoalUnit,
                    HR.record
               FROM LIV.habits H
+        INNER JOIN LIV.frequencies F ON F.frequencyId = H.frequencyId
          LEFT JOIN LIV.habitsWeekDays HWD ON HWD.habitId = H.habitId AND HWD.weekdayId = WEEKDAY(now())
          LEFT JOIN LIV.habitRecords HR ON HR.habitId = H.habitId AND HR.recordDate = :date
              WHERE H.enabled IS TRUE
@@ -96,8 +98,7 @@ $app->get('/api/habit/{habitId}', function (Request $request, Response $response
 
   $app->post('/api/habit', function (Request $request, Response $response, array $args) {
     $data = $request->getParsedBody();
-    // cambiar cuando tenga el login
-    $userId = 1; 
+    $userId = $request->getAttribute('userId');
     $habitName = $data["habitName"];
     $color = $data["color"];
     $icon = $data["icon"];
@@ -217,7 +218,7 @@ $app->get('/api/habit/{habitId}', function (Request $request, Response $response
     $sql = "SELECT weekdayId, 
                    weekdayAlias,
                    weekdayName, 
-                   true AS selected
+                   false AS selected
               FROM LIV.weekDays";
 
     try {
@@ -246,27 +247,63 @@ $app->get('/api/habit/{habitId}', function (Request $request, Response $response
   // HABITS RECORDS
   $app->post('/api/habit/record', function (Request $request, Response $response, array $args) {
     $data = $request->getParsedBody();
-    // cambiar cuando tenga el login
-    $userId = 1; 
+    $userId = $request->getAttribute('userId'); 
     $habitId = $data["habitId"];
     $recordDate = $data["recordDate"];
     $record = $data["record"];
-    
+
     try {
         $db = new DB();
         $conn = $db->connect();
         $conn->beginTransaction();
-        $sql = "INSERT INTO LIV.habitRecords (habitId, userId, recordDate, record)
-                     VALUES (:habitId, :userId, :recordDate, :record) 
-           ON DUPLICATE KEY UPDATE record = :record";
- 
+
+        // Obtener el frequencyId del hábito
+        $sql = "SELECT frequencyId FROM LIV.habits WHERE habitId = :habitId";
         $stmt = $conn->prepare($sql);
-        $stmt->bindParam(':userId', $userId);
         $stmt->bindParam(':habitId', $habitId);
-        $stmt->bindParam(':recordDate', $recordDate);
-        $stmt->bindParam(':record', $record);
         $stmt->execute();
-        
+        $habit = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$habit) {
+            throw new Exception('Habit not found');
+        }
+
+        $frequencyId = $habit['frequencyId'];
+
+        if ($frequencyId == 'W') {
+            // Calcula la fecha de inicio de la semana (lunes)
+            $startDate = new DateTime($recordDate);
+            $dayOfWeek = $startDate->format('N'); // 1 (lunes) a 7 (domingo)
+            $startDate->modify('-' . ($dayOfWeek - 1) . ' days');
+
+            // Crea un registro para cada día de la semana (lunes a domingo)
+            for ($i = 0; $i < 7; $i++) {
+                $currentDate = clone $startDate;
+                $currentDate->modify("+$i days");
+                $formattedDate = $currentDate->format('Y-m-d');
+                $sql = "INSERT INTO LIV.habitRecords (habitId, userId, recordDate, record)
+                         VALUES (:habitId, :userId, :recordDate, :record) 
+                   ON DUPLICATE KEY UPDATE record = :record";
+                $stmt = $conn->prepare($sql);
+                $stmt->bindParam(':userId', $userId);
+                $stmt->bindParam(':habitId', $habitId);
+                $stmt->bindParam(':recordDate', $formattedDate);
+                $stmt->bindParam(':record', $record);
+                $stmt->execute();
+            }
+        } elseif ($frequencyId == 'D') {
+            $sql = "INSERT INTO LIV.habitRecords (habitId, userId, recordDate, record)
+                     VALUES (:habitId, :userId, :recordDate, :record) 
+               ON DUPLICATE KEY UPDATE record = :record";
+            $stmt = $conn->prepare($sql);
+            $stmt->bindParam(':userId', $userId);
+            $stmt->bindParam(':habitId', $habitId);
+            $stmt->bindParam(':recordDate', $recordDate);
+            $stmt->bindParam(':record', $record);
+            $stmt->execute();
+        } else {
+            throw new Exception('Invalid frequencyId');
+        }
 
         $conn->commit();
 
@@ -276,6 +313,22 @@ $app->get('/api/habit/{habitId}', function (Request $request, Response $response
             ->withHeader('content-type', 'application/json')
             ->withStatus(200);
     } catch (PDOException $e) {
+        if ($conn) {
+            $conn->rollBack();
+        }
+
+        $error = array(
+            "message" => $e->getMessage()
+        );
+
+        $response->getBody()->write(json_encode($error));
+        return $response
+            ->withHeader('content-type', 'application/json')
+            ->withStatus(500);
+    } catch (Exception $e) {
+        if ($conn) {
+            $conn->rollBack();
+        }
 
         $error = array(
             "message" => $e->getMessage()
@@ -286,6 +339,7 @@ $app->get('/api/habit/{habitId}', function (Request $request, Response $response
             ->withHeader('content-type', 'application/json')
             ->withStatus(500);
     }
+})->add($jwtMiddleware);
 
-  })->add($jwtMiddleware); 
+
 };

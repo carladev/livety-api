@@ -55,17 +55,19 @@ return function (App $app, $jwtMiddleware) {
     $password = $data['password'];
     $photo = $data['photo'];
 
-    $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-
+    if (($password)) {
+        $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+    }
+    
     try {
         $db = new DB();
         $conn = $db->connect();
-        $stmt = $conn->prepare('UPDATE LIV.users 
-                                SET userName = :userName,
-                                    email = :email,
-                                    password = IF(:password IS NULL, password, :password),
-                                    photo = IF(:photo IS NULL, photo, :photo)
-                                WHERE userId = :userId');
+        $stmt = $conn->prepare("UPDATE LIV.users 
+                                   SET userName = :userName,
+                                       email = :email,
+                                       password = IF(:password IS NULL || :password = '' , password, :password),
+                                       photo = IF(:photo IS NULL, photo, :photo)
+                                 WHERE userId = :userId");
         $stmt->bindParam(':userName', $userName);
         $stmt->bindParam(':email', $email);
         $stmt->bindParam(':password', $hashedPassword);
