@@ -22,10 +22,10 @@ return function (App $app, $jwtMiddleware) {
                    HR.record
               FROM LIV.habits H
         INNER JOIN LIV.frequencies F ON F.frequencyId = H.frequencyId
-         LEFT JOIN LIV.habitsWeekDays HWD ON HWD.habitId = H.habitId AND HWD.weekdayId = WEEKDAY(now())
+         LEFT JOIN LIV.habitsWeekDays HWD ON HWD.habitId = H.habitId
          LEFT JOIN LIV.habitRecords HR ON HR.habitId = H.habitId AND HR.recordDate = :date
-             WHERE H.enabled IS TRUE
-               AND H.userId = :userId";
+             WHERE H.userId = :userId
+               AND H.enabled IS TRUE  AND (H.frequencyId = 'D' AND HWD.weekdayId = WEEKDAY(:date)) OR H.frequencyId = 'W'";
 
     try {
         $db = new DB();
@@ -159,7 +159,124 @@ $app->get('/api/habit/{habitId}', function (Request $request, Response $response
             ->withHeader('content-type', 'application/json')
             ->withStatus(500);
     }
-})->add($jwtMiddleware);;
+})->add($jwtMiddleware);
+
+$app->post('/api/habit/update/{habitId}', function (Request $request, Response $response, array $args) {
+  $habitId = $args['habitId'];
+  $data = $request->getParsedBody();
+  $userId = $request->getAttribute('userId');
+  $habitName = $data["habitName"];
+  $color = $data["color"];
+  $icon = $data["icon"];
+  $frequencyId = $data["frequencyId"];
+  $habitGoal = $data["habitGoal"];
+  $habitGoalUnit = $data["habitGoalUnit"];
+
+  try {
+      $db = new DB();
+      $conn = $db->connect();
+
+      $conn->beginTransaction();
+
+      $sql = "UPDATE LIV.habits 
+              SET userId = :userId, habitName = :habitName, color = :color, icon = :icon, frequencyId = :frequencyId, 
+                  habitGoal = :habitGoal, habitGoalUnit = :habitGoalUnit
+              WHERE habitId = :habitId";
+
+      $stmt = $conn->prepare($sql);
+      $stmt->bindParam(':userId', $userId);
+      $stmt->bindParam(':habitName', $habitName);
+      $stmt->bindParam(':color', $color);
+      $stmt->bindParam(':icon', $icon);
+      $stmt->bindParam(':frequencyId', $frequencyId);
+      $stmt->bindParam(':habitGoal', $habitGoal);
+      $stmt->bindParam(':habitGoalUnit', $habitGoalUnit);
+      $stmt->bindParam(':habitId', $habitId);
+      $stmt->execute();
+
+      if ($frequencyId == 'D') {
+          $weekDays = $data["weekDays"];
+          $sqlDelete = "DELETE FROM LIV.habitsWeekDays WHERE habitId = :habitId";
+          $stmtDelete = $conn->prepare($sqlDelete);
+          $stmtDelete->bindParam(':habitId', $habitId);
+          $stmtDelete->execute();
+
+          $sqlDeleteRecord = "DELETE FROM LIV.habitRecords WHERE habitId = :habitId AND recordDate >NOW()";
+          $Record = $conn->prepare($sqlDeleteRecord);
+          $Record->bindParam(':habitId', $habitId);
+          $Record->execute();
+
+          foreach ($weekDays as $weekDay) {
+              if ($weekDay['selected']) {
+                  $sqlInsert = "INSERT INTO LIV.habitsWeekDays (habitId, weekdayId) VALUES (:habitId, :weekdayId)";
+                  $stmtInsert = $conn->prepare($sqlInsert);
+                  $stmtInsert->bindParam(':habitId', $habitId);
+                  $stmtInsert->bindParam(':weekdayId', $weekDay['weekdayId']);
+                  $stmtInsert->execute();
+              }
+          }
+      }
+
+      $conn->commit();
+
+      $db = null;
+      $response->getBody()->write(json_encode(['success' => true]));
+      return $response
+          ->withHeader('content-type', 'application/json')
+          ->withStatus(200);
+  } catch (PDOException $e) {
+      $conn->rollBack();
+
+      $error = array(
+          "message" => $e->getMessage()
+      );
+
+      $response->getBody()->write(json_encode($error));
+      return $response
+          ->withHeader('content-type', 'application/json')
+          ->withStatus(500);
+  }
+})->add($jwtMiddleware);
+
+$app->post('/api/habit/delete/{habitId}', function (Request $request, Response $response, array $args) {
+  $habitId = $args['habitId'];
+
+  try {
+      $db = new DB();
+      $conn = $db->connect();
+
+      $conn->beginTransaction();
+
+      $sql = "DELETE H, HWD, HR FROM LIV.habits H
+           LEFT JOIN LIV.habitsWeekDays HWD ON HWD.habitId = H.habitId
+           LEFT JOIN LIV.habitRecords HR ON HR.habitId = H.habitId
+               WHERE H.habitId = :habitId";
+
+      $stmt = $conn->prepare($sql);
+      $stmt->bindParam(':habitId', $habitId);
+      $stmt->execute();
+
+      $conn->commit();
+
+      $db = null;
+      $response->getBody()->write(json_encode(['success' => true]));
+      return $response
+          ->withHeader('content-type', 'application/json')
+          ->withStatus(200);
+  } catch (PDOException $e) {
+      $conn->rollBack();
+
+      $error = array(
+          "message" => $e->getMessage()
+      );
+
+      $response->getBody()->write(json_encode($error));
+      return $response
+          ->withHeader('content-type', 'application/json')
+          ->withStatus(500);
+  }
+})->add($jwtMiddleware);
+
 
   
   $app->get('/api/habits/frequencies', function (Request $request, Response $response) {
@@ -271,7 +388,7 @@ $app->get('/api/habit/{habitId}', function (Request $request, Response $response
         $frequencyId = $habit['frequencyId'];
 
         if ($frequencyId == 'W') {
-            // Calcula la fecha de inicio de la semana (lunes)
+            // Calcula la fecha de inicio de la semana 
             $startDate = new DateTime($recordDate);
             $dayOfWeek = $startDate->format('N'); // 1 (lunes) a 7 (domingo)
             $startDate->modify('-' . ($dayOfWeek - 1) . ' days');
