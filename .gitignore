@@ -1,9 +1,4 @@
 /vendor/
-/node_modules/
-
-# Archivos de configuración sensibles
-/.env
-/config/*.php
 
 # Directorios de caché
 /cache/
