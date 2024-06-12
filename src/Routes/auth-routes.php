@@ -66,10 +66,20 @@ return function (App $app) {
             $stmt->bindParam(':password', $hashedPassword);
     
             $stmt->execute();
+            $userId = $conn->lastInsertId();
+
+            $issuedAt = time();
+            $expirationTime = $issuedAt + 3600; 
+            $payload = [
+                'iat' => $issuedAt,
+                'exp' => $expirationTime,
+                'userId' => $userId, 
+                'userName' => $userName,
+            ];
     
-            
-            $response->getBody()->write(json_encode(['message' => 'User registered successfully']));
-            return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+            $jwt = JWT::encode($payload, $secretKey, 'HS256');
+            $response->getBody()->write(json_encode(['token' => $jwt]));
+            return $response->withHeader('Content-Type', 'application/json');
         } catch (PDOException $e) {
           
             $response->getBody()->write(json_encode(['error' => $e->getMessage()]));

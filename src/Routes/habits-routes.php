@@ -7,6 +7,15 @@ use Slim\App;
 
 return function (App $app, $jwtMiddleware) {
 
+  function getInterpolatedQuery($query, $params) {
+      foreach ($params as $key => $value) {
+          // Escapa las comillas simples para evitar errores en la interpolación
+          $escapedValue = str_replace("'", "\'", $value);
+          $query = str_replace($key, "'" . $escapedValue . "'", $query);
+      }
+      return $query;
+  }
+
   $app->get('/api/habits', function (Request $request, Response $response) {
     $date = $request->getQueryParams()['date'];
     $userId = $request->getAttribute('userId');
@@ -25,7 +34,7 @@ return function (App $app, $jwtMiddleware) {
          LEFT JOIN LIV.habitsWeekDays HWD ON HWD.habitId = H.habitId
          LEFT JOIN LIV.habitRecords HR ON HR.habitId = H.habitId AND HR.recordDate = :date
              WHERE H.userId = :userId
-               AND H.enabled IS TRUE  AND (H.frequencyId = 'D' AND HWD.weekdayId = WEEKDAY(:date)) OR H.frequencyId = 'W'";
+               AND H.enabled IS TRUE AND ((H.frequencyId = 'D' AND HWD.weekdayId = WEEKDAY(:date)) OR H.frequencyId = 'W')";
 
     try {
         $db = new DB();
@@ -34,8 +43,14 @@ return function (App $app, $jwtMiddleware) {
         $stmt->bindParam(':date', $date, PDO::PARAM_STR);
         $stmt->bindParam(':userId', $userId, PDO::PARAM_INT);
         $stmt->execute();
+        error_log('UserID en query: ' . $userId);
         $habits = $stmt->fetchAll(PDO::FETCH_OBJ);
         $db = null;
+
+           // Crear un array de parámetros para la interpolación
+        $params = array(':userId' => $userId, ':date' => $date);
+        $interpolatedQuery = getInterpolatedQuery($sql, $params);
+        error_log("Interpolated Query: " . $interpolatedQuery);
 
         $response->getBody()->write(json_encode($habits));
         return $response
