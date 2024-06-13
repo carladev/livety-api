@@ -10,6 +10,8 @@ services:
       - '8888:8888'
     expose:
       - '8888'
+    environment:
+      - COMPOSER_ALLOW_SUPERUSER=1
     depends_on:
       - db
 

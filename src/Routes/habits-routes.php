@@ -7,15 +7,7 @@ use Slim\App;
 
 return function (App $app, $jwtMiddleware) {
 
-  function getInterpolatedQuery($query, $params) {
-      foreach ($params as $key => $value) {
-          // Escapa las comillas simples para evitar errores en la interpolación
-          $escapedValue = str_replace("'", "\'", $value);
-          $query = str_replace($key, "'" . $escapedValue . "'", $query);
-      }
-      return $query;
-  }
-
+// HABITOS
   $app->get('/api/habits', function (Request $request, Response $response) {
     $date = $request->getQueryParams()['date'];
     $userId = $request->getAttribute('userId');
@@ -47,11 +39,6 @@ return function (App $app, $jwtMiddleware) {
         $habits = $stmt->fetchAll(PDO::FETCH_OBJ);
         $db = null;
 
-           // Crear un array de parámetros para la interpolación
-        $params = array(':userId' => $userId, ':date' => $date);
-        $interpolatedQuery = getInterpolatedQuery($sql, $params);
-        error_log("Interpolated Query: " . $interpolatedQuery);
-
         $response->getBody()->write(json_encode($habits));
         return $response
             ->withHeader('content-type', 'application/json')
@@ -69,6 +56,7 @@ return function (App $app, $jwtMiddleware) {
 })->add($jwtMiddleware);
 
 
+// HABITO
 $app->get('/api/habit/{habitId}', function (Request $request, Response $response, array $args) {
   $habitId = $args['habitId'];
   $sql = "SELECT H.habitId,
@@ -110,7 +98,7 @@ $app->get('/api/habit/{habitId}', function (Request $request, Response $response
 })->add($jwtMiddleware);
 
 
-
+// CREAR HABITO
   $app->post('/api/habit', function (Request $request, Response $response, array $args) {
     $data = $request->getParsedBody();
     $userId = $request->getAttribute('userId');
@@ -176,6 +164,8 @@ $app->get('/api/habit/{habitId}', function (Request $request, Response $response
     }
 })->add($jwtMiddleware);
 
+
+// ACTUALIZAR HABITO
 $app->post('/api/habit/update/{habitId}', function (Request $request, Response $response, array $args) {
   $habitId = $args['habitId'];
   $data = $request->getParsedBody();
@@ -253,6 +243,8 @@ $app->post('/api/habit/update/{habitId}', function (Request $request, Response $
   }
 })->add($jwtMiddleware);
 
+
+// ELIMINAR HABITO
 $app->post('/api/habit/delete/{habitId}', function (Request $request, Response $response, array $args) {
   $habitId = $args['habitId'];
 
@@ -293,7 +285,7 @@ $app->post('/api/habit/delete/{habitId}', function (Request $request, Response $
 })->add($jwtMiddleware);
 
 
-  
+//  SELECT DE FRECUENCIAS 
   $app->get('/api/habits/frequencies', function (Request $request, Response $response) {
     $sql = "SELECT * FROM LIV.frequencies";
 
@@ -320,6 +312,7 @@ $app->post('/api/habit/delete/{habitId}', function (Request $request, Response $
     }
   });
 
+  //  SELECT DE COLORES
   $app->get('/api/habits/colors', function (Request $request, Response $response) {
     $sql = "SELECT * FROM LIV.defaultColors";
 
@@ -346,6 +339,7 @@ $app->post('/api/habit/delete/{habitId}', function (Request $request, Response $
     }
   })->add($jwtMiddleware);;
 
+   //  WEEKDAYS
   $app->get('/api/habits/week-days', function (Request $request, Response $response) {
     $sql = "SELECT weekdayId, 
                    weekdayAlias,
@@ -405,10 +399,10 @@ $app->post('/api/habit/delete/{habitId}', function (Request $request, Response $
         if ($frequencyId == 'W') {
             // Calcula la fecha de inicio de la semana 
             $startDate = new DateTime($recordDate);
-            $dayOfWeek = $startDate->format('N'); // 1 (lunes) a 7 (domingo)
+            $dayOfWeek = $startDate->format('N'); 
             $startDate->modify('-' . ($dayOfWeek - 1) . ' days');
 
-            // Crea un registro para cada día de la semana (lunes a domingo)
+            // Crea un registro para cada dia de la semana (lunes a domingo)
             for ($i = 0; $i < 7; $i++) {
                 $currentDate = clone $startDate;
                 $currentDate->modify("+$i days");

@@ -6,6 +6,7 @@ use Slim\App;
 
 return function (App $app, $jwtMiddleware) {
 
+    // WEEKLY TRACKING
     $app->get('/api/weekly-tracking/{weekNumber}', function (Request $request, Response $response, $args) {
         $weekNumber = $args['weekNumber'];
         $userId = $request->getAttribute('userId');
@@ -83,6 +84,7 @@ return function (App $app, $jwtMiddleware) {
         }
     })->add($jwtMiddleware);
 
+    // MONTHLY TRACKING
     $app->get('/api/monthly-tracking/{monthNumber}', function (Request $request, Response $response, $args) {
         $monthNumber = $args['monthNumber'];
         $userId = $request->getAttribute('userId');

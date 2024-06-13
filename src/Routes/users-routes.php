@@ -6,6 +6,8 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\App;
 
 return function (App $app, $jwtMiddleware) {
+
+    // USUARIO
   $app->get('/api/user', function (Request $request, Response $response, array $args) {
   $userId = $request->getAttribute('userId');
     $sql = "SELECT * FROM LIV.users
@@ -41,6 +43,7 @@ return function (App $app, $jwtMiddleware) {
 
   $secretKey = $_ENV['JWT_SECRET'];
 
+  // ACTUALIZAR USUARIO
   $app->post('/api/update-user/{userId}', function (Request $request, Response $response, array $args) use ($secretKey) {
     $userId = $args['userId'];
     $data = $request->getParsedBody();

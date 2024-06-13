@@ -19,6 +19,7 @@ $secretKey = $_ENV['JWT_SECRET'];
 
 require_once __DIR__ . '/../src/config.php';
 
+// Middleware de JWT para comprobar la validez del token de acceso de los usuarios
 $app = AppFactory::create();
 $app->addBodyParsingMiddleware();
 

@@ -9,7 +9,7 @@ create table
     email varchar(255) not null,
     password varchar(255) not null,
     createDate timestamp default CURRENT_TIMESTAMP null,
-    photo text null
+    photo longtext null
   );
 
 create table
@@ -129,3 +129,14 @@ VALUES
   (4, 'V', 'Viernes'),
   (5, 'S', 'Sabado'),
   (6, 'D', 'Domingo');
+
+INSERT INTO
+  LIV.users (userId, userName, email, password, createDate)
+VALUES
+  (
+    1,
+    'carla',
+    'delgadocarmonacarla@gmail.com',
+    '$2y$10$mL2yKwBmCVgS4y.6RsYrc.zG/X/QYDo.4qUvuJFL9ho3.lZ0sMrA.',
+    '2024-06-13 15:52:44'
+  );

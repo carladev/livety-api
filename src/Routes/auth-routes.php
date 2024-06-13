@@ -10,6 +10,7 @@ use Firebase\JWT\Key;
 return function (App $app) {
     $secretKey = $_ENV['JWT_SECRET'];
 
+    // Login
     $app->post('/api/login', function (Request $request, Response $response) use ($secretKey) {
         $data = $request->getParsedBody();
         $userName = $data['userName'];
@@ -49,6 +50,7 @@ return function (App $app) {
         return $response->withHeader('Content-Type', 'application/json')->withStatus(401);
     });
     
+    // Registro
     $app->post('/api/register', function (Request $request, Response $response) use ($secretKey) {
         $data = $request->getParsedBody();
         $userName = $data['userName'];
