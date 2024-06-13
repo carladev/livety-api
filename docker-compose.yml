@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  backend:
+    build: .
+    container_name: livety-api
+    networks:
+      - livety_network
+    ports:
+      - '8888:8888'
+    expose:
+      - '8888'
+    environment:
+      - COMPOSER_ALLOW_SUPERUSER=1
+    depends_on:
+      - db
+
+  db:
+    image: mysql:8.4.0
+    container_name: livety-db
+    environment:
+      MYSQL_ROOT_PASSWORD: carladelgado
+      MYSQL_DATABASE: LIV
+      MYSQL_USER: livuserdb
+      MYSQL_PASSWORD: carladelgado
+    ports:
+      - '3306:3306'
+    volumes:
+      - ./src/db:/docker-entrypoint-initdb.d
+
+networks:
+  livety_network:
+    driver: bridge
