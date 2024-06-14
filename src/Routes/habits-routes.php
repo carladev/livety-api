@@ -340,35 +340,40 @@ $app->post('/api/habit/delete/{habitId}', function (Request $request, Response $
   })->add($jwtMiddleware);;
 
    //  WEEKDAYS
-  $app->get('/api/habits/week-days', function (Request $request, Response $response) {
-    $sql = "SELECT weekdayId, 
-                   weekdayAlias,
-                   weekdayName, 
-                   false AS selected
-              FROM LIV.weekDays";
+   $app->get('/api/habits/week-days/{habitId}', function (Request $request, Response $response, array $args) {
+    $habitId = $args['habitId'];
+    $sql = "SELECT WD.weekdayId,
+                   WD.weekdayAlias,
+                   WD.weekdayName,
+                   IF(HWD.habitId IS NOT NULL, true, false) AS selected
+              FROM LIV.weekDays WD
+         LEFT JOIN LIV.habitsWeekDays HWD ON HWD.weekdayId = WD.weekdayId AND HWD.habitId = :habitId";
 
     try {
-      $db = new DB();
-      $conn = $db->connect();
-      $stmt = $conn->query($sql);
-      $users = $stmt->fetchAll(PDO::FETCH_OBJ);
-      $db = null;
+        $db = new DB();
+        $conn = $db->connect();
+        $stmt = $conn->prepare($sql); 
+        $stmt->bindParam(':habitId', $habitId);
+        $stmt->execute();
+        $weekDays = $stmt->fetchAll(PDO::FETCH_OBJ); 
+        $db = null;
 
-      $response->getBody()->write(json_encode($users));
-      return $response
-        ->withHeader('content-type', 'application/json')
-        ->withStatus(200);
+        $response->getBody()->write(json_encode($weekDays));
+        return $response
+            ->withHeader('content-type', 'application/json')
+            ->withStatus(200);
     } catch (PDOException $e) {
-      $error = array(
-        "message" => $e->getMessage()
-      );
+        $error = array(
+            "message" => $e->getMessage()
+        );
 
-      $response->getBody()->write(json_encode($error));
-      return $response
-        ->withHeader('content-type', 'application/json')
-        ->withStatus(500);
+        $response->getBody()->write(json_encode($error));
+        return $response
+            ->withHeader('content-type', 'application/json')
+            ->withStatus(500);
     }
-  })->add($jwtMiddleware);
+})->add($jwtMiddleware);
+
 
   // HABITS RECORDS
   $app->post('/api/habit/record', function (Request $request, Response $response, array $args) {
